@@ -1,9 +1,6 @@
-
-import sys
 import itertools
-import re
-from pythonds.basic import Stack
 
+from pythonds.basic import Stack
 
 operators = ['*', '-', '/', '+']
 data = set()
@@ -45,8 +42,8 @@ def infixToPostfix(infixexpr):
                 topToken = opStack.pop()
         else:
             while (not opStack.isEmpty()) and \
-               (prec[opStack.peek()] >= prec[token]):
-                  postfixList.append(opStack.pop())
+                    (prec[opStack.peek()] >= prec[token]):
+                postfixList.append(opStack.pop())
             opStack.push(token)
 
     while not opStack.isEmpty():
@@ -60,7 +57,7 @@ def infixtoPrefix():
 
 def workThruCases(left_list, right_list):
     global operators, data, max_operators
-    print("data",len(data))
+    print("data", len(data))
     together = [left_list, operators, right_list]
     combos = set(itertools.product(*together))
     new_operators = set()
@@ -106,23 +103,24 @@ def main():
 
     operands = list(range(1, 3))
     combine = []
-    s = [(i,k) for i,k in zip(operands[0::2], operands[1::2])]
-    for itself in range(1,3):
+    s = [(i, k) for i, k in zip(operands[0::2], operands[1::2])]
+    for itself in range(1, 3):
         s.append((itself, itself))
-    speed_up = set(itertools.permutations(s,2))
+    speed_up = set(itertools.permutations(s, 2))
     c = 0
     for speedy in speed_up:
         print("--------------------")
-        print("speedy",speedy, "is" ,c, "out of", len(speed_up)-1)
+        print("speedy", speedy, "is", c, "out of", len(speed_up) - 1)
         print("--------------------")
         workThruCases(speedy[0], speedy[1])
         combine.append(data)
         data = set()
-        c+=1
+        c += 1
 
         # sys.exit()
     data = set().union(*combine)
     print('results len', len(data))
     writeToFile(data)
+
 
 main()
