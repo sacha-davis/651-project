@@ -1,3 +1,5 @@
+# https://www.tensorflow.org/tutorials/text/text_generation
+
 from abc import ABC
 
 import tensorflow as tf
@@ -272,7 +274,6 @@ model.compile(optimizer=tf.keras.optimizers.Adam(),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(
                   from_logits=True))
 model.fit(dataset, epochs=1)
-model.predict()
 # ---------------------------------------------------------------------------------------------------------------------------
 
 
@@ -300,4 +301,3 @@ for epoch in range(EPOCHS):
     print("_"*80)
 
 model.save_weights(checkpoint_prefix.format(epoch=epoch))
-model.predict()
