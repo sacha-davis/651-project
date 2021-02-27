@@ -99,19 +99,22 @@ def define_nnpda(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpr
     sym_stack = Stack()  # Stack for storing the input symbols
     len_stack = Stack()  # Stack for storing the lengths of input symbols
 
-    for i in range(num_steps):
+    for i in range(num_steps):  # 200
         print(i)
         ############# STACK ACTION #############
         # (Default) Pushing for the initial time step
         if i == 0:
+            # words -> [20 x 10 x 200]
+            # words[:, i] -> [200 x 20]
+
             sym_stack.push(words[:, i])
-            print(words)
-            print("--------")
-            print(words[:, i])
-            print("--------")
-            print(tf.compat.v1.norm(words[:, i], axis=-1).numpy()[0])
-            print("--------")
-            print(tf.compat.v1.norm(words[:, i]))
+            # print(words)
+            # print("--------")
+            print(words[:, i])  # 20 x 200
+            # print("--------")
+            print(tf.compat.v1.norm(words[:, i], axis=-1))
+            # print("--------")
+            # print(tf.compat.v1.norm(words[:, i]))
             len_stack.push(tf.compat.v1.norm(words[:, i], axis=-1))
         # Pushing if At > 0
         elif stack_axn > 0:
@@ -140,7 +143,7 @@ def define_nnpda(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpr
         # Reading a total length '1' from the stack
         while (len_read != 1):
             print(len_stack.peek())
-            if len_stack.peek() < 1:
+            if len_stack.peek() < 1:  # PROBLEM
                 curr_read += tf.multiply(sym_stack.peek(), len_stack.peek())
                 len_read += len_stack.peek()
             else:
