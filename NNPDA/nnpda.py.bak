@@ -76,16 +76,14 @@ def get_delta(K):
 
 # @tf.function
 def define_nnpda(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSprop, activation=sigmoid):
-    # words = tf.compat.v1.placeholder(tf.float64, [batch_size, Ni, num_steps])       # Placeholder for the inputs in a given batch
-    words = tf.compat.v1.placeholder(tf.float32, [Ni, num_steps])       # Placeholder for the inputs in a given batch
-    tf.print(words)
+    words = tf.compat.v1.placeholder(tf.float64, [batch_size, Ni, num_steps])       # Placeholder for the inputs in a given batch
 
     # print(words)
 
     # for iteration/batch in num_steps
     # num steps = number of steps needed to get through every minibatch
 
-    st_desired = tf.compat.v1.placeholder(tf.float32, [Ns, num_steps])  # Placeholder for the desired final state
+    st_desired = tf.compat.v1.placeholder(tf.int32, [batch_size, Ns, num_steps])  # Placeholder for the desired final state
 
     Ws = tf.compat.v1.get_variable('Ws', [Ns, Ns, Nr, Ni])    # Weight matrix for computing internal state.
     bs = tf.compat.v1.get_variable('bs', [Ns, 1])             # Bias vector for computing internal state.
@@ -94,8 +92,8 @@ def define_nnpda(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpr
 
     cell = NnpdaCell  # Creating an instance for the NNPDA cell created above.
 
-    initial_state = curr_state = tf.zeros([Ns, 1])  # Initial state of the NNPDA cell
-    initial_read = curr_read = tf.zeros([Nr, 1])    # Initial reading of the stack
+    initial_state = curr_state = tf.zeros([batch_size, Ns, 1])  # Initial state of the NNPDA cell
+    initial_read = curr_read = tf.zeros([batch_size, Nr, 1])    # Initial reading of the stack
     delta, one_minus_delta = get_delta(Ns)                      # The delta matrices required to compute P
 
     sym_stack = Stack()  # Stack for storing the input symbols
@@ -106,12 +104,12 @@ def define_nnpda(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpr
         ############# STACK ACTION #############
         # (Default) Pushing for the initial time step
         if i == 0:
-            sym_stack.push(words[:, i])  # [20 x 10]
-            len_stack.push(tf.compat.v1.norm(words[:, i], axis=-1))
+            sym_stack.push(words[:, :, i])  # [20 x 10]
+            len_stack.push(tf.compat.v1.norm(words[:, :, i], axis=-1))
         # Pushing if At > 0
         elif stack_axn > 0:
-            sym_stack.push(words[:, i])
-            len_stack.push(stack_axn * tf.compat.v1.norm(words[:, i], axis=-1))
+            sym_stack.push(words[:, :, i])
+            len_stack.push(stack_axn * tf.compat.v1.norm(words[:, :, i], axis=-1))
         # Popping if At < 0
         elif stack_axn < 0:
             len_popped = 0
@@ -135,7 +133,7 @@ def define_nnpda(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpr
         # Reading a total length '1' from the stack
         while (len_read != 1):
             print(len_stack.peek())
-            if tf.cond(tf.less(len_stack.peek(), 1), lambda: True, lambda: False):
+            if len_stack.peek() < 1:  # PROBLEM
                 curr_read += tf.multiply(sym_stack.peek(), len_stack.peek())
                 len_read += len_stack.peek()
             else:
