@@ -44,43 +44,43 @@ class NnpdaCell:
 
     def __call__(self, **kwargs):
         
-        print("In the Call Function")
+        # print("In the Call Function")
         # # Equation 5a
-        print("____________________")
-        print("The following is for the Ws matrix:", end="\n\n")
-        print("self.state_weights shape", tf.shape(self.state_weights), "should be Ns x Ns x Nr x Ni",end="\n\n")
-        print("self.input_symbol shape", tf.shape(self.input_symbol), "should be Ni x 1",end="\n\n")
+        # print("____________________")
+        # print("The following is for the Ws matrix:", end="\n\n")
+        # print("self.state_weights shape", tf.shape(self.state_weights), "should be Ns x Ns x Nr x Ni",end="\n\n")
+        # print("self.input_symbol shape", tf.shape(self.input_symbol), "should be Ni x 1",end="\n\n")
         # WI_s = tf.reduce_sum(input_tensor=tf.tensordot(self.state_weights, self.input_symbol, axes=1), axis=-1)      # The product Ws*I     shape [Ns x Ns x Nr]
         WI_s = tf.tensordot(self.state_weights, self.input_symbol, axes=1)                                          # The product Ws*I     shape [Ns x Ns x Nr]
-        print("WI_s shape", tf.shape(WI_s), "should be Ns x Ns x Nr",end="\n\n")
+        # print("WI_s shape", tf.shape(WI_s), "should be Ns x Ns x Nr",end="\n\n")
         
         
-        print("curr_stack shape", tf.shape(self.current_stack), "should be Nr x 1",end="\n\n")
+        # print("curr_stack shape", tf.shape(self.current_stack), "should be Nr x 1",end="\n\n")
         WIR_s = tf.reduce_sum(input_tensor=tf.tensordot(WI_s, self.current_stack, axes=1), axis=-1)                  # The product Ws*I*R   shape [Ns x Ns]
         # WIR_s = tf.tensordot(WI_s, self.current_stack, axes=1)
-        print("WIR_s shape", tf.shape(WIR_s), "should be Ns x Ns",end="\n\n")
+        # print("WIR_s shape", tf.shape(WIR_s), "should be Ns x Ns",end="\n\n")
 
         WIRS = tf.tensordot(WIR_s, self.current_state, axes=1)                                          # The product Ws*I*R*S shape [Ns x 1]
-        print("WIRS shape", tf.shape(WIRS), "should be Ns x 1",end="\n\n")
-        print("state bias shape", tf.shape(tf.reshape(self.state_bias, [-1])), "should be 1D and share a dimension with WIRS",end="\n\n")
+        # print("WIRS shape", tf.shape(WIRS), "should be Ns x 1",end="\n\n")
+        # print("state bias shape", tf.shape(tf.reshape(self.state_bias, [-1])), "should be 1D and share a dimension with WIRS",end="\n\n")
         WIRS_bias = tf.transpose(tf.nn.bias_add(tf.transpose(WIRS), tf.reshape(self.state_bias, [-1])))                                 # Adding the state bias shape [Ns x 1]
-        print("WIRS_bias shape", tf.shape(WIRS_bias), "should be Ns x 1",end="\n\n")
+        # print("WIRS_bias shape", tf.shape(WIRS_bias), "should be Ns x 1",end="\n\n")
 
         next_state = self.state_activation(WIRS_bias)                                                   # Applying the activation function shape [Ns x 1]
-        print("next_state shape", tf.shape(next_state), "should be NS x 1",end="\n\n")
-        print("End of Ws calculations")
-        print("____________________")
+        # print("next_state shape", tf.shape(next_state), "should be NS x 1",end="\n\n")
+        # print("End of Ws calculations")
+        # print("____________________")
         # ------------------------------------------------fine til here-------------------------------------------------
 
         # Equation 5b
         # WI_a = tf.reduce_sum(input_tensor=tf.tensordot(self.action_weights, self.input_symbol, axes=1), axis=-1)     # The product Wa*I    shape [2^Ns x Nr]
-        print("____________________")
-        print("The following is for the Wa matrix:",end="\n\n")
+        # print("____________________")
+        # print("The following is for the Wa matrix:",end="\n\n")
         WI_a = tf.tensordot(self.action_weights, self.input_symbol,  axes=1)    # The product Wa*I    shape [2^Ns x Nr]
-        print("WI_a shape", tf.shape(WI_a), "should be 2^Ns x Nr",end="\n\n")
+        # print("WI_a shape", tf.shape(WI_a), "should be 2^Ns x Nr",end="\n\n")
 
         WIR_a = tf.reduce_sum(input_tensor=tf.tensordot(WI_a, self.current_stack, axes=1), axis=-1)                  # The product Wa*I*R  shape [2^Ns]
-        print("WIR_a shape", tf.shape(WIR_a), "should be 2^Ns",end="\n\n")
+        # print("WIR_a shape", tf.shape(WIR_a), "should be 2^Ns",end="\n\n")
 
         # Equation 23/24
       
@@ -89,22 +89,22 @@ class NnpdaCell:
         # which are determined by the mth bit of the binary number (J-1). 
         # For example, if J-1 = 10, its binary form is 1010, which sets δm: δ1=1, δ2=0, δ3=1 and δ4=0. 
         # The summation of all components of the extended state PJ is equal to one
-        print("delta shape", tf.shape(self.delta), "should be 2^Ns X 1 (?)",end="\n\n")
+        # print("delta shape", tf.shape(self.delta), "should be 2^Ns X 1 (?)",end="\n\n")
         Sdelta = tf.multiply(self.delta, tf.transpose(a=tf.reverse(self.current_state, axis=[1])))            # The product delta*S          shape [2^Ns x 1]
-        print("Sdelta shape", tf.shape(Sdelta), "should be 2^Ns x 1 (?)",end="\n\n")
+        # print("Sdelta shape", tf.shape(Sdelta), "should be 2^Ns x 1 (?)",end="\n\n")
 
         Sdelta_ = tf.multiply(self.delta_, tf.transpose(a=tf.reverse(1 - self.current_state, axis=[1])))      # The product (1-delta)*(1-S)  shape [2^Ns x 1]
-        print("Sdelta_ shape", tf.shape(Sdelta_), "should be 2^Ns x 1 (?)",end="\n\n")
+        # print("Sdelta_ shape", tf.shape(Sdelta_), "should be 2^Ns x 1 (?)",end="\n\n")
 
         P = tf.reduce_prod(input_tensor=Sdelta + Sdelta_, axis=1)                                                    # P matrix  shape [2^Ns x 1]
-        print("P shape", tf.shape(P), "should be 2^Ns x 1",end="\n\n")
+        # print("P shape", tf.shape(P), "should be 2^Ns x 1",end="\n\n")
 
 
         # Equation 23 and Equation 5b continued
 
         WIRP = tf.tensordot(WIR_a, P, axes=1) # Scalar stack action value (NOTE: WRIP is already a scalar, no reduction needed)
         # WIRP = tf.reduce_sum(input_tensor=it, axis=-1)   # Scalar stack action value
-        print("WIRP shape", tf.shape(WIRP), "should be scalar",end="\n\n")
+        # print("WIRP shape", tf.shape(WIRP), "should be scalar",end="\n\n")
         # print("self.action_bias shape", tf.shape(self.action_bias), "should be 1D",end="\n\n")
 
         # NOTE: Equation 23 has no action bias. Getting the action bias doesn't make sense since
@@ -114,17 +114,15 @@ class NnpdaCell:
         # print("WIRP_bias shape", tf.shape(WIRP_bias), "should be scalar?",end="\n\n")
 
         stack_axn = self.action_activation(WIRP)              # Applying the activation function
-        print("stack_axn shape", tf.shape(stack_axn), "should be scalar",end="\n\n")
+        # print("stack_axn shape", tf.shape(stack_axn), "should be scalar",end="\n\n")
         
-        print("End of Wa calculations")
-        print("____________________")
-        exit()
+        # print("End of Wa calculations")
+        # print("____________________")
 
         # print(stack_axn)
         self.nxt = next_state
         self.axn = stack_axn
 
-        assert False
 
         # return next_state, stack_axn
 
@@ -219,6 +217,12 @@ def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpro
         print("stack action:", stack_axn)
 
         curr_state = next_state
+        loss_per_example = tf.square(tf.norm(tensor=st_desired - curr_state)) + tf.square(len_stack.peek())
+        total_loss = tf.reduce_mean(input_tensor=loss_per_example)
+        print("Loss per example", loss_per_example)
+        print("Total loss", total_loss)
+
+    return total_loss
 
 
 nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSprop, activation=sigmoid)
