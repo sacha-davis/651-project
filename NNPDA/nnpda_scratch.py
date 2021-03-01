@@ -100,8 +100,6 @@ class NnpdaCell:
 
 
         # Equation 23 and Equation 5b continued
-        # print("tf.reshape(P, [2**Ns - 1, 1])",tf.shape(tf.reshape(P, [2**Ns - 1, 1])))
-        # print("tf.reshape(WIR_a, [2**Ns - 1, 1])",tf.shape(tf.reshape(WIR_a, [2**Ns - 1, 1])))
 
         it = tf.tensordot(WIR_a, P, axes=1)
         print("it", it, end="\n\n")
@@ -132,7 +130,7 @@ class NnpdaCell:
 def get_delta(k):
     # this function returns the delta matrix needed calculating Pj = delta*S + (1-delta)*(1-S)
     delta = np.arange(1, (2 ** k)+1)[:, np.newaxis] >> np.arange(k)[::-1] & 1
-    all_ones = np.array([[1 for _ in range(k)] for _ in range(2**k-1)])
+    all_ones = np.array([[1 for _ in range(k)] for _ in range(2**k)])
     delta_ = all_ones - delta
 
     return delta, delta_
