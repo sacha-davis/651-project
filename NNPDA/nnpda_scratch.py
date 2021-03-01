@@ -82,6 +82,13 @@ class NnpdaCell:
         print("WIR_a shape", tf.shape(WIR_a), "should be 2^Ns",end="\n\n")
 
         # Equation 23/24
+      
+        # Information on on these equations:
+        # δ inside the product represents the binary values of 0 and 1, 
+        # which are determined by the mth bit of the binary number (J-1). 
+        # For example, if J-1 = 10, its binary form is 1010, which sets δm: δ1=1, δ2=0, δ3=1 and δ4=0. 
+        # The summation of all components of the extended state PJ is equal to one
+        print("delta shape", tf.shape(self.delta), "should be ?binary",end="\n\n")
         Sdelta = tf.multiply(self.delta, tf.transpose(a=tf.reverse(self.current_state, axis=[1])))            # The product delta*S          shape [2^Ns x 1]
         print("Sdelta shape", tf.shape(Sdelta), "should be 2^Ns x 1",end="\n\n")
 
@@ -93,7 +100,12 @@ class NnpdaCell:
 
 
         # Equation 23 and Equation 5b continued
-        WIRP = tf.reduce_sum(input_tensor=tf.tensordot(WIR_a, P, axes=1), axis=-1)   # Scalar stack action value
+        # print("tf.reshape(P, [2**Ns - 1, 1])",tf.shape(tf.reshape(P, [2**Ns - 1, 1])))
+        # print("tf.reshape(WIR_a, [2**Ns - 1, 1])",tf.shape(tf.reshape(WIR_a, [2**Ns - 1, 1])))
+
+        it = tf.tensordot(WIR_a, P, axes=1)
+        print("it", it, end="\n\n")
+        WIRP = tf.reduce_sum(input_tensor=it, axis=-1)   # Scalar stack action value
         print("WIRP shape", tf.shape(WIRP), "should be ?",end="\n\n")
 
         WIRP_bias = tf.nn.bias_add(WIRP, self.action_bias)         # Adding the scalar action bias
@@ -119,7 +131,7 @@ class NnpdaCell:
 
 def get_delta(k):
     # this function returns the delta matrix needed calculating Pj = delta*S + (1-delta)*(1-S)
-    delta = np.arange(1, 2 ** k)[:, np.newaxis] >> np.arange(k)[::-1] & 1
+    delta = np.arange(1, (2 ** k)+1)[:, np.newaxis] >> np.arange(k)[::-1] & 1
     all_ones = np.array([[1 for _ in range(k)] for _ in range(2**k-1)])
     delta_ = all_ones - delta
 
