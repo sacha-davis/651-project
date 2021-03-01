@@ -46,27 +46,27 @@ class NnpdaCell:
         print("In the Call Function")
         # # Equation 5a
         print("____________________")
-        print("The following is for the Ws matrix:")
-        print("self.state_weights shape", tf.shape(self.state_weights), "should be Ns x Ns x Nr x Ni")
-        print("self.input_symbol shape", tf.shape(self.input_symbol), "should be Ni x 1")
+        print("The following is for the Ws matrix:", end="\n\n")
+        print("self.state_weights shape", tf.shape(self.state_weights), "should be Ns x Ns x Nr x Ni",end="\n\n")
+        print("self.input_symbol shape", tf.shape(self.input_symbol), "should be Ni x 1",end="\n\n")
         # WI_s = tf.reduce_sum(input_tensor=tf.tensordot(self.state_weights, self.input_symbol, axes=1), axis=-1)      # The product Ws*I     shape [Ns x Ns x Nr]
         WI_s = tf.tensordot(self.state_weights, self.input_symbol, axes=1)                                          # The product Ws*I     shape [Ns x Ns x Nr]
-        print("WI_s shape", tf.shape(WI_s), "should be Ns x Ns x Nr")
+        print("WI_s shape", tf.shape(WI_s), "should be Ns x Ns x Nr",end="\n\n")
         
         
-        print("curr_stack shape", tf.shape(self.current_stack), "should be Nr x 1")
+        print("curr_stack shape", tf.shape(self.current_stack), "should be Nr x 1",end="\n\n")
         WIR_s = tf.reduce_sum(input_tensor=tf.tensordot(WI_s, self.current_stack, axes=1), axis=-1)                  # The product Ws*I*R   shape [Ns x Ns]
         # WIR_s = tf.tensordot(WI_s, self.current_stack, axes=1)
-        print("WIR_s shape", tf.shape(WIR_s), "should be Ns x Ns")
+        print("WIR_s shape", tf.shape(WIR_s), "should be Ns x Ns",end="\n\n")
 
         WIRS = tf.tensordot(WIR_s, self.current_state, axes=1)                                          # The product Ws*I*R*S shape [Ns x 1]
-        print("WIRS shape", tf.shape(WIRS), "should be Ns x 1")
-        print("state bias shape", tf.shape(tf.reshape(self.state_bias, [-1])), "should be 1D and share a dimension with WIRS")
+        print("WIRS shape", tf.shape(WIRS), "should be Ns x 1",end="\n\n")
+        print("state bias shape", tf.shape(tf.reshape(self.state_bias, [-1])), "should be 1D and share a dimension with WIRS",end="\n\n")
         WIRS_bias = tf.transpose(tf.nn.bias_add(tf.transpose(WIRS), tf.reshape(self.state_bias, [-1])))                                 # Adding the state bias shape [Ns x 1]
-        print("WIRS_bias shape", tf.shape(WIRS_bias), "should be Ns x 1")
+        print("WIRS_bias shape", tf.shape(WIRS_bias), "should be Ns x 1",end="\n\n")
 
         next_state = self.state_activation(WIRS_bias)                                                   # Applying the activation function shape [Ns x 1]
-        print("next_state shape", tf.shape(next_state), "should be NS x 1")
+        print("next_state shape", tf.shape(next_state), "should be NS x 1",end="\n\n")
         print("End of Ws calculations")
         print("____________________")
         # ------------------------------------------------fine til here-------------------------------------------------
@@ -74,33 +74,33 @@ class NnpdaCell:
         # Equation 5b
         # WI_a = tf.reduce_sum(input_tensor=tf.tensordot(self.action_weights, self.input_symbol, axes=1), axis=-1)     # The product Wa*I    shape [2^Ns x Nr]
         print("____________________")
-        print("The following is for the Wa matrix:")
+        print("The following is for the Wa matrix:",end="\n\n")
         WI_a = tf.tensordot(self.action_weights, self.input_symbol,  axes=1)    # The product Wa*I    shape [2^Ns x Nr]
-        print("WI_a shape", tf.shape(WI_a), "should be 2^Ns x Nr")
+        print("WI_a shape", tf.shape(WI_a), "should be 2^Ns x Nr",end="\n\n")
 
         WIR_a = tf.reduce_sum(input_tensor=tf.tensordot(WI_a, self.current_stack, axes=1), axis=-1)                  # The product Wa*I*R  shape [2^Ns]
-        print("WIR_a shape", tf.shape(WIR_a), "should be 2^Ns")
+        print("WIR_a shape", tf.shape(WIR_a), "should be 2^Ns",end="\n\n")
 
         # Equation 23/24
-        Sdelta = tf.multiply(self.delta, tf.transpose(a=tf.reverse(self.current_state, axis=1)))            # The product delta*S          shape [2^Ns x 1]
-        print("Sdelta shape", tf.shape(Sdelta), "should be 2^Ns x 1")
+        Sdelta = tf.multiply(self.delta, tf.transpose(a=tf.reverse(self.current_state, axis=[1])))            # The product delta*S          shape [2^Ns x 1]
+        print("Sdelta shape", tf.shape(Sdelta), "should be 2^Ns x 1",end="\n\n")
 
-        Sdelta_ = tf.multiply(self.delta_, tf.transpose(a=tf.reverse(1 - self.current_state, axis=1)))      # The product (1-delta)*(1-S)  shape [2^Ns x 1]
-        print("Sdelta_ shape", tf.shape(Sdelta_), "should be 2^Ns x 1")
+        Sdelta_ = tf.multiply(self.delta_, tf.transpose(a=tf.reverse(1 - self.current_state, axis=[1])))      # The product (1-delta)*(1-S)  shape [2^Ns x 1]
+        print("Sdelta_ shape", tf.shape(Sdelta_), "should be 2^Ns x 1",end="\n\n")
 
         P = tf.reduce_prod(input_tensor=Sdelta + Sdelta_, axis=1)                                                    # P matrix  shape [2^Ns x 1]
-        print("P shape", tf.shape(P), "should be 2^Ns x 1")
+        print("P shape", tf.shape(P), "should be 2^Ns x 1",end="\n\n")
 
 
         # Equation 23 and Equation 5b continued
         WIRP = tf.reduce_sum(input_tensor=tf.tensordot(WIR_a, P, axes=1), axis=-1)   # Scalar stack action value
-        print("WIRP shape", tf.shape(WIRP), "should be ?")
+        print("WIRP shape", tf.shape(WIRP), "should be ?",end="\n\n")
 
         WIRP_bias = tf.nn.bias_add(WIRP, self.action_bias)         # Adding the scalar action bias
-        print("WIRP_bias shape", tf.shape(WIRP_bias), "should be ?")
+        print("WIRP_bias shape", tf.shape(WIRP_bias), "should be ?",end="\n\n")
 
         stack_axn = self.action_activation(WIRP_bias)              # Applying the activation function
-        print("stack_axn shape", tf.shape(stack_axn), "should be ?")
+        print("stack_axn shape", tf.shape(stack_axn), "should be ?",end="\n\n")
         
         print("End of Wa calculations")
         print("____________________")
