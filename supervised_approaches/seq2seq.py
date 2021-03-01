@@ -1,4 +1,3 @@
-
 # code taken from https://github.com/rstudio/keras/blob/master/vignettes/examples/lstm_seq2seq.py
 
 # from __future__ import print_function
@@ -6,7 +5,6 @@
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 import numpy as np
-
 
 batch_size = 64  # Batch size for training.
 epochs = 100  # Number of epochs to train for.
@@ -42,19 +40,16 @@ num_decoder_tokens = len(target_characters)
 max_encoder_seq_length = max([len(txt) for txt in input_texts])
 max_decoder_seq_length = max([len(txt) for txt in target_texts])
 
-
 print('Number of samples:', len(input_texts))
 print('Number of unique input tokens:', num_encoder_tokens)
 print('Number of unique output tokens:', num_decoder_tokens)
 print('Max sequence length for inputs:', max_encoder_seq_length)
 print('Max sequence length for outputs:', max_decoder_seq_length)
 
-
 input_token_index = dict(
     [(char, i) for i, char in enumerate(input_characters)])
 target_token_index = dict(
     [(char, i) for i, char in enumerate(target_characters)])
-
 
 encoder_input_data = np.zeros(
     (len(input_texts), max_encoder_seq_length, num_encoder_tokens),
@@ -66,7 +61,6 @@ decoder_target_data = np.zeros(
     (len(input_texts), max_decoder_seq_length, num_decoder_tokens),
     dtype='float32')
 
-
 for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
     for t, char in enumerate(input_text):
         encoder_input_data[i, t, input_token_index[char]] = 1.
@@ -77,7 +71,6 @@ for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
             # decoder_target_data will be ahead by one timestep
             # and will not include the start character.
             decoder_target_data[i, t - 1, target_token_index[char]] = 1.
-
 
 # Define an input sequence and process it.
 encoder_inputs = Input(shape=(None, num_encoder_tokens))
@@ -165,7 +158,7 @@ def decode_sequence(input_seq):
         # Exit condition: either hit max length
         # or find stop character.
         if (sampled_char == '\n' or
-           len(decoded_sentence) > max_decoder_seq_length):
+                len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
 
         # Update the target sequence (of length 1).
@@ -186,4 +179,3 @@ for seq_index in range(100):
     print('-')
     print('Input sentence:', input_texts[seq_index])
     print('Decoded sentence:', decoded_sentence)
-
