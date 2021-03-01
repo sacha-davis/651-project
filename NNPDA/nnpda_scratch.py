@@ -39,36 +39,74 @@ class NnpdaCell:
         self.delta = delta                            # Delta Matrix
         self.delta_ = delta_                    # One minus delta matrix
 
-        self.nxt = self.current_state
-        self.axn = 1
+        self.nxt = None
+        self.axn = None
 
     def __call__(self, **kwargs):
         print("I'm here!")
-        # Equation 5a
-        WI_s = tf.reduce_sum(input_tensor=tf.tensordot(self.state_weights, self.input_symbol, axes=1), axis=-1)      # The product Ws*I     shape [Ns x Ns x Nr]
+        # # Equation 5a
+        # print(tf.shape(self.state_weights))
+        # print(tf.shape(self.input_symbol))
+        # print(tf.shape(npt))
+        # print("Ws", tf.shape(self.state_weights))
+        # WI_s = tf.reduce_sum(input_tensor=tf.tensordot(self.state_weights, self.input_symbol, axes=1), axis=-1)      # The product Ws*I     shape [Ns x Ns x Nr]
+        WI_s = tf.tensordot(self.state_weights, self.input_symbol, axes=1)
+        # print("WI_s", tf.shape(WI_s))
+        # print("curr_stack", tf.shape(self.current_stack))
+
         WIR_s = tf.reduce_sum(input_tensor=tf.tensordot(WI_s, self.current_stack, axes=1), axis=-1)                  # The product Ws*I*R   shape [Ns x Ns]
+        # WIR_s = tf.tensordot(WI_s, self.current_stack, axes=1)
+        # print("WIR_s", tf.shape(WIR_s))
+
+        # print(tf.shape())
         WIRS = tf.tensordot(WIR_s, self.current_state, axes=1)                                          # The product Ws*I*R*S shape [Ns x 1]
-        WIRS_bias = tf.nn.bias_add(WIRS, self.state_bias)                                               # Adding the state bias            shape [Ns x 1]
+        # print("WIRS", tf.shape(WIRS))
+        # print("state bias", tf.shape(self.state_bias))
+        # print(tf.shape(tf.reshape(self.state_bias, [-1])))
+        WIRS_bias = tf.transpose(tf.nn.bias_add(tf.transpose(WIRS), tf.reshape(self.state_bias, [-1])))                                 # Adding the state bias            shape [Ns x 1]
+        # print("WIRS bias", tf.shape(WIRS_bias))
+
         next_state = self.state_activation(WIRS_bias)                                                   # Applying the activation function shape [Ns x 1]
 
+        # ------------------------------------------------fine til here-------------------------------------------------
+
         # Equation 5b
-        WI_a = tf.reduce_sum(input_tensor=tf.tensordot(self.action_weights, self.input_symbol, axes=1), axis=-1)     # The product Wa*I    shape [2^Ns x Nr]
+        # WI_a = tf.reduce_sum(input_tensor=tf.tensordot(self.action_weights, self.input_symbol, axes=1), axis=-1)     # The product Wa*I    shape [2^Ns x Nr]
+        WI_a = tf.tensordot(self.action_weights, self.input_symbol,  axes=1)    # The product Wa*I    shape [2^Ns x Nr]
+        print("WI_a", tf.shape(WI_a))
+
+        assert False
+
         WIR_a = tf.reduce_sum(input_tensor=tf.tensordot(WI_a, self.current_stack, axes=1), axis=-1)                  # The product Wa*I*R  shape [2^Ns]
+        print("WIR_a", tf.shape(WIR_a))
 
         # Equation 23/24
         Sdelta = tf.multiply(self.delta, tf.transpose(a=tf.reverse(self.current_state, dims=1)))            # The product delta*S          shape [2^Ns x 1]
+        print("Sdelta", tf.shape(Sdelta))
+
         Sdelta_ = tf.multiply(self.delta_, tf.transpose(a=tf.reverse(1 - self.current_state, dims=1)))      # The product (1-delta)*(1-S)  shape [2^Ns x 1]
+        print("Sdelta_", tf.shape(Sdelta_))
+
         P = tf.reduce_prod(input_tensor=Sdelta + Sdelta_, axis=1)                                                    # P matrix                     shape [2^Ns x 1]
+        print("P", tf.shape(P))
+
 
         # Equation 23 and Equation 5b continued
         WIRP = tf.reduce_sum(input_tensor=tf.tensordot(WIR_a, P), axis=-1)   # Scalar stack action value
+        print("WIRP", tf.shape(WIRP))
+
         WIRP_bias = tf.nn.bias_add(WIRP, self.action_bias)         # Adding the scalar action bias
+        print("WIRP_bias", tf.shape(WIRP_bias))
+
         stack_axn = self.action_activation(WIRP_bias)              # Applying the activation function
+        print("stack_axn", tf.shape(stack_axn))
 
-        print(stack_axn)
 
+        # print(stack_axn)
         self.nxt = next_state
         self.axn = stack_axn
+
+        # return next_state, stack_axn
 
     def rtrn(self):
         return self.nxt, self.axn
@@ -84,7 +122,7 @@ def get_delta(k):
 
 
 def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSprop, activation=sigmoid):
-    cell = NnpdaCell
+    # cell = NnpdaCell
     words = tf.ones([Ni, num_steps], dtype=tf.dtypes.float32)  # [10x200]
 
     st_desired = tf.Variable(tf.random.normal([Ns, num_steps]))   # Placeholder for the desired final state
@@ -126,30 +164,38 @@ def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpro
             continue
 
         ############# READING THE STACK ##########
-        curr_read = tf.zeros([batch_size, Nr, 1])
+        curr_read = tf.zeros([Nr, 1])
         len_read = 0
         # Reading a total length '1' from the stack
         while len_read != 1:
-            print(len_stack.peek())
+            # print(len_stack.peek())
             if len_stack.peek() < 1:
-                curr_read += tf.multiply(sym_stack.peek(), len_stack.peek())
+                curr_read = tf.math.add(curr_read, tf.multiply(sym_stack.peek(), len_stack.peek()))
+                # print("current read b4 if", tf.shape(curr_read))
                 len_read += len_stack.peek()
             else:
-                curr_read += sym_stack.peek()
+                curr_read = tf.math.add(curr_read, tf.reshape(sym_stack.peek(), [Ni, 1]))
+
+                # print(curr_read)
+                # print("current read b4 else", tf.shape(curr_read))
+
                 len_read = 1
 
         # https://stackoverflow.com/questions/9663562/what-is-the-difference-between-init-and-call
-        next_state, stack_axn = cell(input_symbol=words[:, i],
-                                     current_state=curr_state,
-                                     current_stack=curr_read,
-                                     state_activation=sigmoid,
-                                     action_activation=tanh,
-                                     state_weights=variables_dict["Ws"],
-                                     state_bias=variables_dict["bs"],
-                                     action_weights=variables_dict["Wa"],
-                                     action_bias=variables_dict["ba"],
-                                     delta=delta,
-                                     delta_=delta_).rtrn()
+        cell = NnpdaCell(input_symbol=words[:, i],
+                         current_state=curr_state,
+                         current_stack=curr_read,
+                         state_activation=sigmoid,
+                         action_activation=tanh,
+                         state_weights=variables_dict["Ws"],
+                         state_bias=variables_dict["bs"],
+                         action_weights=variables_dict["Wa"],
+                         action_bias=variables_dict["ba"],
+                         delta=delta,
+                         delta_=delta_)# .rtrn()
+        cell()
+        next_state, stack_axn = cell.rtrn()
+        print("stack action:", stack_axn)
 
         curr_state = next_state
 
