@@ -3,14 +3,15 @@ from pythonds.basic import Stack
 
 
 class ArithmeticGeneration:
-    def __init__(self, max_operators, numbers_included=[[0,1,2,3,4,5,6,7,8,9]], output_file="dataset.tsv"):
+    def __init__(self, max_operators,
+                 numbers_included=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+                 output_file="dataset.tsv"):
         self.operators = ['*', '-', '/', '+']
         self.data = set()
         self.combos_seen = set()
         self.max_operators = max_operators
         self.numbers_included = numbers_included
         self.output_file = output_file
-
 
     def infixEquations(self, left, operator, right):
         '''
@@ -26,8 +27,7 @@ class ArithmeticGeneration:
 
         return result
 
-
-    def infixToPostfix(self,infixexpr):
+    def infixToPostfix(self, infixexpr):
         '''
         Inputs: infixexpr (str): a string form infix expression.
         This function is taken (almost) verbatim from the following site: https://runestone.academy/runestone/books/published/pythonds/BasicDS/InfixPrefixandPostfixExpressions.html
@@ -64,7 +64,6 @@ class ArithmeticGeneration:
             postfixList.append(opStack.pop())
         return " ".join(postfixList)
 
-
     def infixtoPrefix(self):
         '''
         TODO
@@ -72,7 +71,6 @@ class ArithmeticGeneration:
         Returns: (str) string form of converted to pre fix expression.
         '''
         pass
-
 
     def workThruCases(self, left_list, right_list):
         together = [left_list, self.operators, right_list]
@@ -82,8 +80,10 @@ class ArithmeticGeneration:
             if c not in self.combos_seen:
                 self.combos_seen.add(c)
                 num_operators = 1
-                num_operators += sum([str(c[0]).count(x) for x in self.operators])
-                num_operators += sum([str(c[2]).count(x) for x in self.operators])
+                num_operators += sum(
+                    [str(c[0]).count(x) for x in self.operators])
+                num_operators += sum(
+                    [str(c[2]).count(x) for x in self.operators])
                 if num_operators < self.max_operators:
                     result = self.infixEquations(c[0], c[1], c[2])
                     self.data.add(result)
@@ -98,7 +98,6 @@ class ArithmeticGeneration:
             self.workThruCases(new_operators, new_operators)
 
         return
-
 
     def writeToFile(self, dataset):
         '''
@@ -122,7 +121,6 @@ class ArithmeticGeneration:
 
         return
 
-
     def generate(self):
         '''
         Function works through all possible combinations of given operands and operators.
@@ -132,7 +130,7 @@ class ArithmeticGeneration:
         for operands in self.numbers_included:
             combine = []
             s = [(i, k) for i, k in zip(operands[0::2], operands[1::2])]
-            for itself in range(operands[0], operands[-1]+1):
+            for itself in range(operands[0], operands[-1] + 1):
                 s.append((itself, itself))
             speed_up = set(itertools.permutations(s, 2))
 
@@ -146,6 +144,3 @@ class ArithmeticGeneration:
         self.data = set().union(*combine)
         self.writeToFile(self.data)
         print("done")
-
-
-
