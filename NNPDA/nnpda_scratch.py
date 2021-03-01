@@ -16,10 +16,10 @@ num_steps = 200
 str_len = 10
 
 
-variables_dict = {"Ws": tf.Variable(tf.random.normal([Ns, Ns, Nr, Ni]), name="state_weights"),  # Weight matrix for computing internal state.
-                  "bs": tf.Variable(tf.zeros([Ns, 1]), name="state_bias"),  # Bias vector for computing internal state.
-                  "Wa": tf.Variable(tf.random.normal([2 ** Ns, Nr, Ni]), name="action_weights"),  # Weight matrix for computing stack action.
-                  "ba": tf.Variable(tf.zeros([1, 1]), name="action_bias")}  # Scalar bias for computing stack action.
+variables_dict = {"Ws": tf.Variable(tf.random.normal([Ns, Ns, Nr, Ni]), dtype=tf.dtypes.float32,name="state_weights"),  # Weight matrix for computing internal state.
+                  "bs": tf.Variable(tf.ones([Ns, 1]), dtype=tf.dtypes.float32,name="state_bias"),  # Bias vector for computing internal state.
+                  "Wa": tf.Variable(tf.random.normal([2 ** Ns, Nr, Ni]), dtype=tf.dtypes.float32,name="action_weights"),  # Weight matrix for computing stack action.
+                  "ba": tf.Variable(tf.ones([1, 1]), dtype=tf.dtypes.float32,name="action_bias")}  # Scalar bias for computing stack action.
 
 
 class NnpdaCell:
@@ -38,11 +38,12 @@ class NnpdaCell:
         self.action_bias = action_bias                # Scalar bias for stack action.
         self.delta = delta                            # Delta Matrix
         self.delta_ = delta_                    # One minus delta matrix
-
+        
         self.nxt = None
         self.axn = None
 
     def __call__(self, **kwargs):
+        
         print("In the Call Function")
         # # Equation 5a
         print("____________________")
@@ -62,6 +63,9 @@ class NnpdaCell:
         WIRS = tf.tensordot(WIR_s, self.current_state, axes=1)                                          # The product Ws*I*R*S shape [Ns x 1]
         print("WIRS shape", tf.shape(WIRS), "should be Ns x 1",end="\n\n")
         print("state bias shape", tf.shape(tf.reshape(self.state_bias, [-1])), "should be 1D and share a dimension with WIRS",end="\n\n")
+        print("tf.nn.bias_add(tf.transpose(WIRS)", tf.transpose(WIRS))
+        print("tf.reshape(self.state_bias, [-1]))",tf.reshape(self.state_bias, [-1]))
+        # exit()
         WIRS_bias = tf.transpose(tf.nn.bias_add(tf.transpose(WIRS), tf.reshape(self.state_bias, [-1])))                                 # Adding the state bias shape [Ns x 1]
         print("WIRS_bias shape", tf.shape(WIRS_bias), "should be Ns x 1",end="\n\n")
 
@@ -101,16 +105,19 @@ class NnpdaCell:
 
         # Equation 23 and Equation 5b continued
 
-        it = tf.tensordot(WIR_a, P, axes=1)
-        print("it", it, end="\n\n")
-        WIRP = tf.reduce_sum(input_tensor=it, axis=-1)   # Scalar stack action value
-        print("WIRP shape", tf.shape(WIRP), "should be ?",end="\n\n")
+        WIRP = tf.tensordot(WIR_a, P, axes=1) # Scalar stack action value (NOTE: WRIP is already a scalar, no reduction needed)
+        # WIRP = tf.reduce_sum(input_tensor=it, axis=-1)   # Scalar stack action value
+        print("WIRP shape", tf.shape(WIRP), "should be scalar",end="\n\n")
+        print("self.action_bias shape", tf.shape(self.action_bias), "should be 1D",end="\n\n")
 
-        WIRP_bias = tf.nn.bias_add(WIRP, self.action_bias)         # Adding the scalar action bias
-        print("WIRP_bias shape", tf.shape(WIRP_bias), "should be ?",end="\n\n")
+        # NOTE: Equation 23 has no action bias. Getting the action bias doesn't make sense since
+        # WIRP is already a scalar. It's not possible to use bias_add.
+        # If we were only using eq 5.b, we'd be finding an action bias with WIRS, like in the state matrix.
+        # WIRP_bias = tf.nn.bias_add(WIRP, tf.reshape(self.action_bias, [-1]))  # Adding the scalar action bias
+        # print("WIRP_bias shape", tf.shape(WIRP_bias), "should be scalar?",end="\n\n")
 
-        stack_axn = self.action_activation(WIRP_bias)              # Applying the activation function
-        print("stack_axn shape", tf.shape(stack_axn), "should be ?",end="\n\n")
+        stack_axn = self.action_activation(WIRP)              # Applying the activation function
+        print("stack_axn shape", tf.shape(stack_axn), "should be scalar????",end="\n\n")
         
         print("End of Wa calculations")
         print("____________________")
@@ -141,7 +148,7 @@ def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpro
     words = tf.ones([Ni, num_steps], dtype=tf.dtypes.float32)  # [10x200]
 
     st_desired = tf.Variable(tf.random.normal([Ns, num_steps]))   # Placeholder for the desired final state
-    curr_state = tf.zeros([Ns, 1])
+    curr_state = tf.ones([Ns, 1])
 
     delta, delta_ = get_delta(Ns)
 
@@ -179,7 +186,7 @@ def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpro
             continue
 
         ############# READING THE STACK ##########
-        curr_read = tf.zeros([Nr, 1])
+        curr_read = tf.ones([Nr, 1])
         len_read = 0
         # Reading a total length '1' from the stack
         while len_read != 1:
@@ -197,6 +204,7 @@ def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSpro
                 len_read = 1
 
         # https://stackoverflow.com/questions/9663562/what-is-the-difference-between-init-and-call
+        
         cell = NnpdaCell(input_symbol=words[:, i],
                          current_state=curr_state,
                          current_stack=curr_read,
