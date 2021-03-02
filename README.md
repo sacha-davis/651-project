@@ -13,7 +13,7 @@ The `Datasets` directory contains the scripts to generate our mathematical equat
 This script generates simple mathematical equations (operators: +,-,/,*,(,)) and its reverse polish notation equivalent.
 
 The `NNPDA` directory contains the (work in progress) code and instructions for the implementation of a neural network pushdown automata (NNPDA).
-This algorithm is our approach for solving the transduction problem.
+This algorithm is an important part of our approach for solving the transduction problem.
 
 The `supervised_approaches` directory contains the code and instructions for a sequence-to-sequence implementation.
 This algorithm is used to understand how seq2seq can be used for this project, as well as give an idea of what we need to incorporate into the NNPDA code.
