@@ -6,43 +6,55 @@ from tensorflow.keras.optimizers import RMSprop
 
 from stack import Stack
 
-Ns = 20  # state neurons
-Ni = 10  # input neurons
-Nr = 10  # stack reading neurons
-Na = 3  # stack action neurons
-
-batch_size = 20
-num_steps = 200
-str_len = 10
-
-
-variables_dict = {"Ws": tf.Variable(tf.random.normal([Ns, Ns, Nr, Ni]), dtype=tf.dtypes.float32,name="state_weights"),  # Weight matrix for computing internal state.
-                  "bs": tf.Variable(tf.ones([Ns, 1]), dtype=tf.dtypes.float32,name="state_bias"),  # Bias vector for computing internal state.
-                  "Wa": tf.Variable(tf.random.normal([2 ** Ns, Nr, Ni]), dtype=tf.dtypes.float32,name="action_weights"),  # Weight matrix for computing stack action.
-                  "ba": tf.Variable(tf.ones([1, 1]), dtype=tf.dtypes.float32,name="action_bias")}  # Scalar bias for computing stack action.
-
 
 class NnpdaCell:
-    def __init__(self, state_weights, state_bias, action_weights, action_bias, delta, delta_, input_symbol=None,
-                 current_state=None, current_stack=None, state_activation=sigmoid,
-                 action_activation=tanh):
+    # def __init__(self, state_weights, state_bias, action_weights, action_bias, delta, delta_, input_symbol=None,
+    #              current_state=None, current_stack=None, state_activation=sigmoid,
+    #              action_activation=tanh, optimizer=RMSprop, activation=sigmoid):
+
+    def __init__(self, input_symbol=None, current_state=None, current_stack=None, state_activation=sigmoid,
+                 action_activation=tanh, optimizer=RMSprop, activation=sigmoid):
 
         self.input_symbol = input_symbol              # Input symbol received at time 't'.     shape [Ni x 1]
         self.current_state = current_state            # Internal state at time 't'.            shape [Ns x 1]
         self.current_stack = current_stack            # Stack reading at time 't'.             shape [Nr x 1]
         self.state_activation = state_activation      # State activation function.
         self.action_activation = action_activation    # Action activation function.
-        self.state_weights = state_weights            # Weight matrix for internal state.      shape [Ns x Ns x Nr x Ni]
-        self.state_bias = state_bias                  # Bias vector for internal state.        shape [Ns x 1]
-        self.action_weights = action_weights          # Weight matrix for stack action.        shape [2^Ns x Nr x Ni]
-        self.action_bias = action_bias                # Scalar bias for stack action.
-        self.delta = delta                            # Delta Matrix
-        self.delta_ = delta_                    # One minus delta matrix
+        # self.state_weights = state_weights    
+        self.state_weights = None                     # Weight matrix for internal state.      shape [Ns x Ns x Nr x Ni]
+        # self.state_bias = state_bias
+        self.state_bias = None                        # Bias vector for internal state.        shape [Ns x 1]
+        # self.action_weights = action_weights
+        self.action_weights = None                    # Weight matrix for stack action.        shape [2^Ns x Nr x Ni]
+        # self.action_bias = action_bias
+        self.action_bias = None                       # Scalar bias for stack action.
+        self.delta = None                             # Delta Matrix
+        self.delta_ = None      
+        self.stack_axn = None                         # One minus delta matrix
+
+        self.Ns = 20  # state neurons
+        self.Ni = 10  # input neurons
+        self.Nr = 10  # stack reading neurons
+        self.Na = 3   # stack action neurons
+
+        self.batch_size = 20
+        self.str_len = 10
+        self.num_steps = 200
         
         self.nxt = None
         self.axn = None
+        
+        self.initializeVars()
 
-    def __call__(self, **kwargs):
+
+    def initializeVars(self):
+        self.state_weights=tf.Variable(tf.random.normal([self.Ns, self.Ns, self.Nr, self.Ni]), dtype=tf.dtypes.float32,name="state_weights")  # Weight matrix for computing internal state.
+        self.state_bias=tf.Variable(tf.ones([self.Ns, 1]), dtype=tf.dtypes.float32,name="state_bias")  # Bias vector for computing internal state.
+        self.action_weights=tf.Variable(tf.random.normal([2 ** self.Ns, self.Nr, self.Ni]), dtype=tf.dtypes.float32,name="action_weights")  # Weight matrix for computing stack action.
+        self.action_bias=tf.Variable(tf.ones([1, 1]), dtype=tf.dtypes.float32,name="action_bias")  # Scalar bias for computing stack action.
+
+
+    def learnWeightMatrixes(self):
         
         # print("In the Call Function")
         # # Equation 5a
@@ -113,15 +125,15 @@ class NnpdaCell:
         # WIRP_bias = tf.nn.bias_add(WIRP, tf.reshape(self.action_bias, [-1]))  # Adding the scalar action bias
         # print("WIRP_bias shape", tf.shape(WIRP_bias), "should be scalar?",end="\n\n")
 
-        stack_axn = self.action_activation(WIRP)              # Applying the activation function
-        # print("stack_axn shape", tf.shape(stack_axn), "should be scalar",end="\n\n")
+        self.stack_axn = self.action_activation(WIRP)              # Applying the activation function
+        # print("self.stack_axn shape", tf.shape(self.stack_axn), "should be scalar",end="\n\n")
         
         # print("End of Wa calculations")
         # print("____________________")
 
-        # print(stack_axn)
+        # print(self.stack_axn)
         self.nxt = next_state
-        self.axn = stack_axn
+        self.axn = self.stack_axn
 
 
         # return next_state, stack_axn
@@ -130,99 +142,95 @@ class NnpdaCell:
         return self.nxt, self.axn
 
 
-def get_delta(k):
-    # this function returns the delta matrix needed calculating Pj = delta*S + (1-delta)*(1-S)
-    delta = np.arange(1, (2 ** k)+1)[:, np.newaxis] >> np.arange(k)[::-1] & 1
-    all_ones = np.array([[1 for _ in range(k)] for _ in range(2**k)])
-    delta_ = all_ones - delta
+    def get_delta(self,k):
+        # this function returns the delta matrix needed calculating Pj = delta*S + (1-delta)*(1-S)
+        delta = np.arange(1, (2 ** k)+1)[:, np.newaxis] >> np.arange(k)[::-1] & 1
+        all_ones = np.array([[1 for _ in range(k)] for _ in range(2**k)])
+        delta_ = all_ones - delta
 
-    return delta, delta_
+        return delta, delta_
 
 
-def nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSprop, activation=sigmoid):
-    # cell = NnpdaCell
-    words = tf.ones([Ni, num_steps], dtype=tf.dtypes.float32)  # [10x200]
+    def nnpda_cycle(self, optimizer=RMSprop, activation=sigmoid):
+        # cell = NnpdaCell
+        words = tf.ones([self.Ni, self.num_steps], dtype=tf.dtypes.float32)  # [10x200]
 
-    st_desired = tf.Variable(tf.random.normal([Ns, num_steps]))   # Placeholder for the desired final state
-    curr_state = tf.ones([Ns, 1])
+        st_desired = tf.Variable(tf.random.normal([self.Ns, self.num_steps]))   # Placeholder for the desired final state
+        self.current_state = tf.ones([self.Ns, 1])
 
-    delta, delta_ = get_delta(Ns)
+        self.delta, self.delta_ = self.get_delta(self.Ns)
 
-    sym_stack = Stack()  # Stack for storing the input symbols
-    len_stack = Stack()  # Stack for storing the lengths of input symbols
-    
-    for i in range(num_steps):  # 200, length of input sequences
-        print("time step", i)
+        sym_stack = Stack()  # Stack for storing the input symbols
+        len_stack = Stack()  # Stack for storing the lengths of input symbols
 
-        ############# STACK ACTION #############
-        # (Default) Pushing for the initial time step
-        if i == 0:
-            sym_stack.push(words[:, i])  # [, 10]
-            len_stack.push(tf.norm(tensor=words[:, i], axis=-1))
-        # Pushing if At > 0
-        elif stack_axn > 0:
-            sym_stack.push(words[:, i])
-            len_stack.push(stack_axn * tf.norm(tensor=words[:, i], axis=-1))
-        # Popping if At < 0
-        elif stack_axn < 0:
-            len_popped = 0
-            # Popping a total of length |At| from the stack
-            while len_popped != -stack_axn:
-                # If len(top) > |At|, Updating the length
-                if len_stack.peek() > -stack_axn:
-                    len_popped += -stack_axn
-                    len_stack.update(len_stack.peek() - stack_axn)
-                # If len(top) < |At|, Popping the top
-                else:
-                    len_popped += len_stack.peek()
-                    sym_stack.pop()
-                    len_stack.pop()
-        # No action if At=0
-        else:
-            continue
-
-        ############# READING THE STACK ##########
-        curr_read = tf.ones([Nr, 1])
-        len_read = 0
-        # Reading a total length '1' from the stack
-        while len_read != 1:
-            # print(len_stack.peek())
-            if len_stack.peek() < 1:
-                curr_read = tf.math.add(curr_read, tf.multiply(sym_stack.peek(), len_stack.peek()))
-                # print("current read b4 if", tf.shape(curr_read))
-                len_read += len_stack.peek()
+        for i in range(self.num_steps):  # 200, length of input sequences
+            print("time step", i)
+            print("self.stack_axn", self.stack_axn)
+            ############# STACK ACTION #############
+            # (Default) Pushing for the initial time step
+            if i == 0:
+                sym_stack.push(words[:, i])  # [, 10]
+                len_stack.push(tf.norm(tensor=words[:, i], axis=-1))
+            # Pushing if At > 0
+            elif self.stack_axn > 0:
+                sym_stack.push(words[:, i])
+                len_stack.push(self.stack_axn * tf.norm(tensor=words[:, i], axis=-1))
+            # Popping if At < 0
+            elif self.stack_axn < 0:
+                len_popped = 0
+                # Popping a total of length |At| from the stack
+                while len_popped != (-1)*self.stack_axn:
+                    # If len(top) > |At|, Updating the length
+                    if len_stack.peek() > (-1)* self.stack_axn:
+                        len_popped += (-1)*self.stack_axn
+                        len_stack.update(len_stack.peek() - self.stack_axn)
+                    # If len(top) < |At|, Popping the top
+                    else:
+                        len_popped += len_stack.peek()
+                        sym_stack.pop()
+                        len_stack.pop()
+            # No action if At=0
             else:
-                curr_read = tf.math.add(curr_read, tf.reshape(sym_stack.peek(), [Ni, 1]))
+                continue
 
-                # print(curr_read)
-                # print("current read b4 else", tf.shape(curr_read))
+            ############# READING THE STACK ##########
+            curr_read = tf.ones([self.Nr, 1])
+            len_read = 0
+            # Reading a total length '1' from the stack
+            while len_read != 1:
+                # print(len_stack.peek())
+                if len_stack.peek() < 1:
+                    curr_read = tf.math.add(curr_read, tf.multiply(sym_stack.peek(), len_stack.peek()))
+                    # print("current read b4 if", tf.shape(curr_read))
+                    len_read += len_stack.peek()
+                else:
+                    curr_read = tf.math.add(curr_read, tf.reshape(sym_stack.peek(), [self.Ni, 1]))
 
-                len_read = 1
+                    # print(curr_read)
+                    # print("current read b4 else", tf.shape(curr_read))
 
-        # https://stackoverflow.com/questions/9663562/what-is-the-difference-between-init-and-call
+                    len_read = 1
+
         
-        cell = NnpdaCell(input_symbol=words[:, i],
-                         current_state=curr_state,
-                         current_stack=curr_read,
-                         state_activation=sigmoid,
-                         action_activation=tanh,
-                         state_weights=variables_dict["Ws"],
-                         state_bias=variables_dict["bs"],
-                         action_weights=variables_dict["Wa"],
-                         action_bias=variables_dict["ba"],
-                         delta=delta,
-                         delta_=delta_)# .rtrn()
-        cell()
-        next_state, stack_axn = cell.rtrn()
-        print("stack action:", stack_axn)
+        self.input_symbol=words[:, i]
+        # self.current_state=curr_state
+        self.current_stack=curr_read
+        self.state_activation=sigmoid
+        self.action_activation=tanh
+        
+        self.learnWeightMatrixes()
 
-        curr_state = next_state
-        loss_per_example = tf.square(tf.norm(tensor=st_desired - curr_state)) + tf.square(len_stack.peek())
+        # next_state, self.stack_axn = cell.rtrn()
+        print("stack action:", self.axn)
+        self.stack_axn = self.axn
+        self.curr_state = self.nxt
+        loss_per_example = tf.square(tf.norm(tensor=st_desired - self.curr_state)) + tf.square(len_stack.peek())
         total_loss = tf.reduce_mean(input_tensor=loss_per_example)
         print("Loss per example", loss_per_example)
         print("Total loss", total_loss)
 
-    return total_loss
+        return total_loss
 
 
-nnpda_cycle(Ns, Ni, Nr, Na, batch_size, num_steps, str_len, optimizer=RMSprop, activation=sigmoid)
+cell = NnpdaCell()
+cell.nnpda_cycle()
