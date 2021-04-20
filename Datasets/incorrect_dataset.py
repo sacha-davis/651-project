@@ -9,7 +9,11 @@ def generateWrong():
     equs = set()
     while len(equs) < 30000:
         e = ''
-        for s in range(500):
+        c = list(range(15))
+        r = random.choice(c)
+        r = r*random.choice([1, -1])
+        r + 30
+        for s in range(r):
             char = str(random.choice(vocab))
             e += char
             e+= ' '
@@ -18,7 +22,6 @@ def generateWrong():
         except:
             equs.add(e[:-1])
         
-
     return equs
 
 
