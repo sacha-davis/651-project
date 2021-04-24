@@ -6,10 +6,14 @@ This can be described as the task to not only accept or reject a given string, b
 In other words, transduction is the combination of recognition with the task of generation.
 
 ## Final Submission Related
+### Output Files
 For machine outputs, graphs, and models that were used in the final paper, please see the output_files folder.
 
 ### Code
 The code in this repository is incomplete. The large majority of the coding working can be found [here](https://github.com/Hk-tang/marnns), as we built of the fork of another repository.
+
+### Human Readable logs
+For our google sheet of human readable logs, click [here](https://docs.google.com/spreadsheets/d/1f-DIOjS_gD20Rv61FrMdxo7keDZ9iRB74MPuOa80TTY/edit?usp=sharing)
 
 ## Introduction
 
