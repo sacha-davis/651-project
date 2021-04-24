@@ -5,6 +5,12 @@ The objective of this project is to explore a solution for the transduction prob
 This can be described as the task to not only accept or reject a given string, but additionally translate the string into another language.
 In other words, transduction is the combination of recognition with the task of generation.
 
+## Final Submission Related
+For machine outputs, graphs, and models that were used in the final paper, please see the output_files folder.
+
+# Code
+The code in this repository is incomplete. The large majority of the coding working can be found [here](https://github.com/Hk-tang/marnns), as we built of the fork of another repository.
+
 ## Introduction
 
 This repository contains the code, instructions, and data for our project.
