@@ -8,7 +8,7 @@ In other words, transduction is the combination of recognition with the task of 
 ## Final Submission Related
 For machine outputs, graphs, and models that were used in the final paper, please see the output_files folder.
 
-# Code
+### Code
 The code in this repository is incomplete. The large majority of the coding working can be found [here](https://github.com/Hk-tang/marnns), as we built of the fork of another repository.
 
 ## Introduction
